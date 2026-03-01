@@ -1,0 +1,15 @@
+[package]
+name = "mdbaker"
+version = "0.1.0"
+edition = "2021"
+description = "Markdown to PDF CLI using CSS styling"
+
+[[bin]]
+name = "mdbaker"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+pulldown-cmark = "0.10"
+hyper-render = { version = "0.2", default-features = false, features = ["pdf"] }
+anyhow = "1.0"
