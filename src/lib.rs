@@ -113,8 +113,7 @@ pub fn markdown_to_pdf(
         .format(OutputFormat::Pdf)
         .auto_height(false);
 
-    let pdf_bytes =
-        render_to_pdf(&full_html, config).context("PDF render failed")?;
+    let pdf_bytes = render_to_pdf(&full_html, config).context("PDF render failed")?;
 
     std::fs::write(output.as_ref(), pdf_bytes).context("failed to write PDF")?;
 

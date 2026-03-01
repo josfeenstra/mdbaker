@@ -9,6 +9,14 @@ const EXAMPLE_MARKDOWN: &str = r#"# mdbaker Example Brief
 
 This example demonstrates the **built-in default style** (Rust documentation inspired).
 
+this is a line
+this is another line
+
+this is a third line, after two enters
+
+
+This is a fourth line, after a triple enter.
+
 ## Usage
 
 ```bash
