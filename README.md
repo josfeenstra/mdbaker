@@ -1,4 +1,5 @@
 # mdbaker
+[DISCLAIMER: FULLY AI SLOBBED]
 
 Convert Markdown to PDF with CSS styling. Uses [hyper-render](https://docs.rs/hyper-render) — pure Rust, no Chrome.
 

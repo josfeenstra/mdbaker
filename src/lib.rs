@@ -111,7 +111,7 @@ pub fn markdown_to_pdf(
         .height(height)
         .scale(scale)
         .format(OutputFormat::Pdf)
-        .auto_height(true);
+        .auto_height(false);
 
     let pdf_bytes =
         render_to_pdf(&full_html, config).context("PDF render failed")?;

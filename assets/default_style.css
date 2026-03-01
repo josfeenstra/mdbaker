@@ -13,16 +13,29 @@ body {
     padding: 2em 3em;
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
     font-weight: 600;
     color: #24292f;
     margin-top: 1.5em;
     margin-bottom: 0.5em;
 }
 
-h1 { font-size: 1.75em; border-bottom: 1px solid #eaecef; padding-bottom: 0.25em; }
-h2 { font-size: 1.4em; }
-h3 { font-size: 1.2em; }
+h1 {
+    font-size: 1.75em;
+    border-bottom: 1px solid #eaecef;
+    padding-bottom: 0.25em;
+}
+
+h2 {
+    font-size: 1.4em;
+}
+
+h3 {
+    font-size: 1.2em;
+}
 
 p {
     margin: 0.75em 0;
@@ -71,13 +84,25 @@ blockquote {
     color: #57606a;
 }
 
-ul, ol {
-    padding-left: 2em;
+ul,
+ol {
+    padding-left: 1em;
     margin: 0.75em 0;
 }
 
 li {
-    margin: 0.25em 0;
+    /* margin: 0.25em 0; */
+    list-style-type: none;
+    padding-left: 1.5em;
+}
+
+li::before {
+    content: "– ";
+    color: #57606a;
+    font-weight: 500;
+    display: contents;
+    /* vertical-align: middle; */
+    width: 1.5em;
 }
 
 table {
@@ -86,7 +111,8 @@ table {
     margin: 1em 0;
 }
 
-th, td {
+th,
+td {
     border: 1px solid #e3e6e8;
     padding: 0.5em 0.75em;
     text-align: left;
@@ -98,7 +124,10 @@ th {
 }
 
 @media print {
-    body { padding: 1em; }
+    body {
+        padding: 1em;
+    }
+
     * {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
