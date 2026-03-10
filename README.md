@@ -3,12 +3,20 @@
 
 Convert Markdown to PDF with CSS styling. Uses [hyper-render](https://docs.rs/hyper-render) — pure Rust, no Chrome.
 
+Overflowing content is split across multiple pages automatically and merged into a single PDF.
+
 ## Example
 
 Run the bundled example (generates `brief.pdf`):
 
 ```bash
 cargo run --example brief
+```
+
+Multi-page example (generates `long.pdf`):
+
+```bash
+cargo run --example long
 ```
 
 Using the built-in default style on a file:
@@ -44,3 +52,5 @@ mdbaker brief.md -s style.css -o output.pdf --paper letter --orientation landsca
 None — pure Rust, no external binaries.
 
 **Limitations (from hyper-render):** System fonts only (no `@font-face`), no external images.
+
+**Multi-page:** Uses a heuristic (block-level markdown + estimated line count) to split content at sensible boundaries; very long blocks (e.g. huge code blocks) may still overflow a single page.

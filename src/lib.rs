@@ -2,11 +2,13 @@
 //!
 //! Uses [hyper-render](https://docs.rs/hyper-render) for pure-Rust HTML rendering (no Chrome).
 
+mod merge;
+mod split;
+
 use std::path::Path;
 
 use anyhow::{Context, Result};
 use hyper_render::{render_to_pdf, Config, OutputFormat};
-use pulldown_cmark::{html, Options as MarkdownOptions, Parser as MarkdownParser};
 
 /// Built-in default stylesheet (Rust documentation inspired).
 pub const DEFAULT_STYLE: &str = include_str!(concat!(
@@ -76,32 +78,14 @@ impl Default for PdfOptions {
 }
 
 /// Convert markdown and CSS to a PDF file.
+/// Splits content across multiple pages when it overflows, then merges into one PDF.
 pub fn markdown_to_pdf(
     markdown: &str,
     css: &str,
     output: impl AsRef<Path>,
     opts: PdfOptions,
 ) -> Result<()> {
-    let parser = MarkdownParser::new_ext(markdown, MarkdownOptions::empty());
-    let mut html_body = String::new();
-    html::push_html(&mut html_body, parser);
-
-    let full_html = format!(
-        r#"<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-{css}
-</style>
-</head>
-<body>
-{html_body}
-</body>
-</html>"#,
-        css = css,
-        html_body = html_body
-    );
+    let chunks = split::split_markdown_into_chunks(markdown);
 
     let (width, height) = opts.paper.dimensions_96dpi(opts.landscape);
     let scale = opts.scale.unwrap_or(1.0);
@@ -113,7 +97,30 @@ pub fn markdown_to_pdf(
         .format(OutputFormat::Pdf)
         .auto_height(false);
 
-    let pdf_bytes = render_to_pdf(&full_html, config).context("PDF render failed")?;
+    let pdf_chunks: Vec<Vec<u8>> = chunks
+        .iter()
+        .map(|html_body| {
+            let full_html = format!(
+                r#"<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+{css}
+</style>
+</head>
+<body>
+{html_body}
+</body>
+</html>"#,
+                css = css,
+                html_body = html_body
+            );
+            render_to_pdf(&full_html, config.clone()).context("PDF render failed")
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    let pdf_bytes = merge::merge_pdfs(&pdf_chunks).context("merge PDFs")?;
 
     std::fs::write(output.as_ref(), pdf_bytes).context("failed to write PDF")?;
 

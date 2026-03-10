@@ -12,4 +12,5 @@ path = "src/main.rs"
 clap = { version = "4", features = ["derive"] }
 pulldown-cmark = "0.10"
 hyper-render = { version = "0.2", default-features = false, features = ["pdf"] }
+lopdf = "0.39"
 anyhow = "1.0"
