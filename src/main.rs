@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use mdbaker::{markdown_to_pdf, PdfOptions, PaperSize, DEFAULT_STYLE};
+use mdbaker::{
+    markdown_to_html, markdown_to_pdf, LineHeuristic, PaperSize, PdfOptions, DEFAULT_STYLE,
+};
 
 #[derive(Clone, Copy, Debug, Default, clap::ValueEnum)]
 enum Paper {
@@ -69,6 +71,18 @@ struct Args {
     /// Scale factor (0.1–2.0)
     #[arg(long)]
     scale: Option<f32>,
+
+    /// Lines per page for split heuristic (default: 50)
+    #[arg(long)]
+    lines_per_page: Option<f32>,
+
+    /// Chars per line for prose in split heuristic (default: 70)
+    #[arg(long)]
+    chars_per_line: Option<usize>,
+
+    /// Output HTML file instead of PDF (no page splitting)
+    #[arg(long)]
+    html: bool,
 }
 
 fn main() -> Result<()> {
@@ -85,24 +99,35 @@ fn main() -> Result<()> {
 
     let output = args
         .output
-        .unwrap_or_else(|| default_output_path(&args.input));
+        .unwrap_or_else(|| default_output_path(&args.input, args.html));
 
-    let opts = PdfOptions {
-        paper: args.paper.into(),
-        landscape: matches!(args.orientation, Orientation::Landscape),
-        scale: args.scale,
-    };
-
-    markdown_to_pdf(&markdown, &css, &output, opts)?;
+    if args.html {
+        markdown_to_html(&markdown, &css, &output)?;
+    } else {
+        let line_heuristic = match (args.lines_per_page, args.chars_per_line) {
+            (None, None) => None,
+            (lpp, cpl) => Some(LineHeuristic {
+                lines_per_page: lpp.unwrap_or(55.0),
+                chars_per_line: cpl.unwrap_or(70),
+            }),
+        };
+        let opts = PdfOptions {
+            paper: args.paper.into(),
+            landscape: matches!(args.orientation, Orientation::Landscape),
+            scale: args.scale,
+            line_heuristic,
+        };
+        markdown_to_pdf(&markdown, &css, &output, opts)?;
+    }
 
     Ok(())
 }
 
-fn default_output_path(input: &PathBuf) -> PathBuf {
+fn default_output_path(input: &PathBuf, html: bool) -> PathBuf {
     let mut out = input.clone();
     if let Some(stem) = input.file_stem() {
         out.set_file_name(stem);
     }
-    out.set_extension("pdf");
+    out.set_extension(if html { "html" } else { "pdf" });
     out
 }

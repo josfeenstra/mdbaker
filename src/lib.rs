@@ -10,6 +10,8 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use hyper_render::{render_to_pdf, Config, OutputFormat};
 
+pub use split::split_markdown_into_pages;
+
 /// Built-in default stylesheet (Rust documentation inspired).
 pub const DEFAULT_STYLE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -59,12 +61,31 @@ impl PaperSize {
     }
 }
 
+/// Line heuristic for page splitting (estimated lines vs actual rendered height).
+#[derive(Clone, Debug)]
+pub struct LineHeuristic {
+    /// Approximate lines per page (e.g. ~50 for A4 portrait with default style).
+    pub lines_per_page: f32,
+    /// Chars per line for prose (used to estimate line count from text length).
+    pub chars_per_line: usize,
+}
+
+impl Default for LineHeuristic {
+    fn default() -> Self {
+        Self {
+            lines_per_page: 50.0,
+            chars_per_line: 70,
+        }
+    }
+}
+
 /// Options for PDF generation.
 #[derive(Clone, Debug)]
 pub struct PdfOptions {
     pub paper: PaperSize,
     pub landscape: bool,
     pub scale: Option<f32>,
+    pub line_heuristic: Option<LineHeuristic>,
 }
 
 impl Default for PdfOptions {
@@ -73,35 +94,20 @@ impl Default for PdfOptions {
             paper: PaperSize::A4,
             landscape: false,
             scale: None,
+            line_heuristic: None,
         }
     }
 }
 
-/// Convert markdown and CSS to a PDF file.
-/// Splits content across multiple pages when it overflows, then merges into one PDF.
-pub fn markdown_to_pdf(
-    markdown: &str,
-    css: &str,
-    output: impl AsRef<Path>,
-    opts: PdfOptions,
-) -> Result<()> {
-    let chunks = split::split_markdown_into_chunks(markdown);
-
-    let (width, height) = opts.paper.dimensions_96dpi(opts.landscape);
-    let scale = opts.scale.unwrap_or(1.0);
-
-    let config = Config::new()
-        .width(width)
-        .height(height)
-        .scale(scale)
-        .format(OutputFormat::Pdf)
-        .auto_height(false);
-
-    let pdf_chunks: Vec<Vec<u8>> = chunks
-        .iter()
-        .map(|html_body| {
-            let full_html = format!(
-                r#"<!DOCTYPE html>
+/// Convert markdown and CSS to a single HTML file (no splitting).
+pub fn markdown_to_html(markdown: &str, css: &str, output: impl AsRef<Path>) -> Result<()> {
+    let mut html_body = String::new();
+    pulldown_cmark::html::push_html(
+        &mut html_body,
+        pulldown_cmark::Parser::new_ext(markdown, pulldown_cmark::Options::all()),
+    );
+    let full_html = format!(
+        r#"<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -113,16 +119,81 @@ pub fn markdown_to_pdf(
 {html_body}
 </body>
 </html>"#,
-                css = css,
-                html_body = html_body
-            );
+        css = css,
+        html_body = html_body
+    );
+    std::fs::write(output.as_ref(), full_html).context("failed to write HTML")?;
+    Ok(())
+}
+
+/// Convert markdown and CSS to a PDF file.
+/// Splits content at heading boundaries, then renders and merges pages.
+pub fn markdown_to_pdf(
+    markdown: &str,
+    css: &str,
+    output: impl AsRef<Path>,
+    opts: PdfOptions,
+) -> Result<()> {
+    let heuristic = opts
+        .line_heuristic
+        .as_ref()
+        .map(|h| (h.lines_per_page, h.chars_per_line));
+    let fragments = split::split_markdown_into_pages(markdown, heuristic);
+    html_fragments_to_pdf(&fragments, css, output, opts)
+}
+
+/// Render pre-cut HTML body fragments into a multi-page PDF.
+///
+/// Each fragment should be valid HTML body content (no `<html>`/`<head>` wrapper).
+/// The CSS and document skeleton are added automatically around each fragment.
+///
+/// This is the lower-level entry point: call it directly when you want full
+/// control over how content is split across pages.
+pub fn html_fragments_to_pdf(
+    fragments: &[String],
+    css: &str,
+    output: impl AsRef<Path>,
+    opts: PdfOptions,
+) -> Result<()> {
+    let (width, height) = opts.paper.dimensions_96dpi(opts.landscape);
+    let scale = opts.scale.unwrap_or(1.0);
+
+    let config = Config::new()
+        .width(width)
+        .height(height)
+        .scale(scale)
+        .format(OutputFormat::Pdf)
+        .auto_height(false);
+
+    let pdf_chunks: Vec<Vec<u8>> = fragments
+        .iter()
+        .map(|body| {
+            let full_html = wrap_html(body, css);
             render_to_pdf(&full_html, config.clone()).context("PDF render failed")
         })
         .collect::<Result<Vec<_>>>()?;
 
     let pdf_bytes = merge::merge_pdfs(&pdf_chunks).context("merge PDFs")?;
-
     std::fs::write(output.as_ref(), pdf_bytes).context("failed to write PDF")?;
 
     Ok(())
+}
+
+fn wrap_html(body: &str, css: &str) -> String {
+    format!(
+        r#"<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+{css}
+</style>
+</head>
+<body>
+<br>
+<br>
+{body}
+</body>
+</html>"#
+    )
 }
