@@ -54,3 +54,11 @@ None — pure Rust, no external binaries.
 **Limitations (from hyper-render):** System fonts only (no `@font-face`), no external images.
 
 **Multi-page:** Uses a heuristic (block-level markdown + estimated line count) to split content at sensible boundaries; very long blocks (e.g. huge code blocks) may still overflow a single page.
+
+## Installation
+
+- (Install rust)[https://rust-lang.org/]
+- `git clone https://github.com/josfeenstra/mdbaker`
+- `cd mdbaker`
+- `cargo install --path .`
+- `mdbaker --help`
