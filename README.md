@@ -57,7 +57,7 @@ None — pure Rust, no external binaries.
 
 ## Installation
 
-- (Install rust)[https://rust-lang.org/]
+- [Install rust](https://rust-lang.org/)
 - `git clone https://github.com/josfeenstra/mdbaker`
 - `cd mdbaker`
 - `cargo install --path .`
