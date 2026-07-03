@@ -40,12 +40,7 @@ The PDF should now span multiple pages, all merged into a single file.
         section("### Subsection: Details", 8, 19),
     );
 
-    markdown_to_pdf(
-        &markdown,
-        DEFAULT_STYLE,
-        "long.pdf",
-        PdfOptions::default(),
-    )?;
+    markdown_to_pdf(&markdown, DEFAULT_STYLE, "long.pdf", PdfOptions::default())?;
 
     println!("Generated long.pdf");
 

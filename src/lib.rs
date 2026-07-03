@@ -8,9 +8,10 @@ mod split;
 use std::path::Path;
 
 use anyhow::{Context, Result};
+use chrono::Local;
 use hyper_render::{render_to_pdf, Config, OutputFormat};
 
-pub use split::split_markdown_into_pages;
+pub use split::{split_markdown_into_pages, split_markdown_into_pages_with_date};
 
 /// Built-in default stylesheet (Rust documentation inspired).
 pub const DEFAULT_STYLE: &str = include_str!(concat!(
@@ -138,7 +139,8 @@ pub fn markdown_to_pdf(
         .line_heuristic
         .as_ref()
         .map(|h| (h.lines_per_page, h.chars_per_line));
-    let fragments = split::split_markdown_into_pages(markdown, heuristic);
+    let current_date = Local::now().format("%B %-d, %Y").to_string();
+    let fragments = split::split_markdown_into_pages_with_date(markdown, heuristic, &current_date);
     html_fragments_to_pdf(&fragments, css, output, opts)
 }
 
@@ -190,8 +192,6 @@ fn wrap_html(body: &str, css: &str) -> String {
 </style>
 </head>
 <body>
-<br>
-<br>
 {body}
 </body>
 </html>"#

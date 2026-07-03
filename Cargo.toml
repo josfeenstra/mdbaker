@@ -14,3 +14,4 @@ pulldown-cmark = "0.10"
 hyper-render = { version = "0.2", default-features = false, features = ["pdf"] }
 lopdf = "0.39"
 anyhow = "1.0"
+chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
